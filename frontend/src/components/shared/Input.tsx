@@ -1,3 +1,4 @@
+import { useTheme } from "@/src/hooks/useTheme";
 import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TextInput, TextInputProps, TouchableOpacity, View } from "react-native";
@@ -26,6 +27,7 @@ export const Input: React.FC<InputProps> = ({
   style,
   ...props
 }) => {
+  const { colors } = useTheme();
   const inputScale = useSharedValue(1);
 
   const handleFocus = () => {
@@ -42,36 +44,59 @@ export const Input: React.FC<InputProps> = ({
     transform: [{ scale: inputScale.value }],
   }));
 
+  const getIconColor = () => {
+    if (error) return colors.error;
+    if (focused) return colors.primary;
+    return colors.textMuted;
+  };
+
   return (
     <View style={styles.inputGroup}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
       <Animated.View style={[styles.inputWrapper, inputAnimatedStyle]}>
         <View
-          style={[styles.inputContainer, focused && styles.inputContainerFocused, error && styles.inputContainerError]}
+          style={[
+            styles.inputContainer,
+            { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+            focused && { borderColor: colors.primary + "50", backgroundColor: colors.primary + "20" },
+            error && { borderColor: colors.error + "50", backgroundColor: colors.error + "10" },
+            props.multiline && styles.inputContainerMultiline,
+          ]}
         >
           {icon && (
             <MaterialIcons
               name={icon}
               size={20}
-              color={error ? "#EF4444" : focused ? "#3B82F6" : "#9CA3AF"}
-              style={styles.icon}
+              color={getIconColor()}
+              style={[styles.icon, props.multiline && styles.iconMultiline]}
             />
           )}
           <TextInput
-            style={[styles.input, showPasswordToggle && styles.passwordInput, style]}
-            placeholderTextColor="#9CA3AF"
+            style={[
+              styles.input,
+              { color: colors.text },
+              showPasswordToggle && styles.passwordInput,
+              props.multiline && styles.inputMultiline,
+              style,
+            ]}
+            placeholderTextColor={colors.textMuted}
             onFocus={handleFocus}
             onBlur={handleBlur}
+            textAlignVertical={props.multiline ? "top" : "center"}
             {...props}
           />
           {showPasswordToggle && (
             <TouchableOpacity style={styles.eyeButton} onPress={onTogglePassword}>
-              <MaterialIcons name={props.secureTextEntry ? "visibility-off" : "visibility"} size={20} color="#9CA3AF" />
+              <MaterialIcons
+                name={props.secureTextEntry ? "visibility-off" : "visibility"}
+                size={20}
+                color={colors.textMuted}
+              />
             </TouchableOpacity>
           )}
         </View>
       </Animated.View>
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error && <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>}
     </View>
   );
 };
@@ -83,7 +108,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#D1D5DB",
     marginBottom: 8,
   },
   inputWrapper: {
@@ -92,28 +116,32 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 8,
     paddingLeft: 12,
     paddingRight: 12,
     height: 48,
   },
-  inputContainerFocused: {
-    borderColor: "rgba(59, 130, 246, 0.5)",
-    backgroundColor: "rgba(59, 130, 246, 0.1)",
-  },
-  inputContainerError: {
-    borderColor: "rgba(239, 68, 68, 0.5)",
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
+  inputContainerMultiline: {
+    alignItems: "flex-start",
+    height: "auto",
+    minHeight: 48,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   icon: {
     marginRight: 8,
   },
+  iconMultiline: {
+    marginTop: 2,
+  },
   input: {
     flex: 1,
-    color: "#FFFFFF",
     fontSize: 14,
     height: "100%",
+  },
+  inputMultiline: {
+    height: "auto",
+    minHeight: 20,
   },
   passwordInput: {
     marginRight: 8,
@@ -122,7 +150,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   errorText: {
-    color: "#EF4444",
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,

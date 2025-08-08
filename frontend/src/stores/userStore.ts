@@ -1,23 +1,34 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
-interface User {
+export type User = {
   id: string;
-  name: string;
   email: string;
-}
+} | null;
 
-interface UserStore {
-  user: User | null;
+type UserStoreState = {
+  user: User;
+  token: string | null;
   setUser: (user: User) => void;
-}
+  setToken: (token: string | null) => void;
+  clearUser: () => void;
+};
 
-const useUserStore = create<UserStore>((set) => ({
-  user: null,
-  setUser: (user: User) =>
-    set((state) => ({
-      user: { ...state.user, ...user },
-    })),
-  logout: () => set({ user: null }),
-}));
+const useUserStore = create<UserStoreState>()(
+  persist(
+    (set) => ({
+      user: null,
+      token: null,
+      setUser: (user) => set({ user }),
+      setToken: (token) => set({ token }),
+      clearUser: () => set({ user: null, token: null }),
+    }),
+    {
+      name: "user-storage",
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
+);
 
 export default useUserStore;

@@ -1,50 +1,73 @@
 import { Button } from "@/src/components/shared/Button";
 import { Input } from "@/src/components/shared/Input";
+import { useLoginMutation, useRegisterMutation } from "@/src/hooks/useAuth";
 import { useTheme } from "@/src/hooks/useTheme";
-import useUserStore from "@/src/stores/userStore";
-
-import { useLoginMutation } from "@/src/hooks/useAuth";
 import { MaterialIcons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, { BounceIn, FadeIn, SlideInDown, SlideInLeft, SlideInRight } from "react-native-reanimated";
 import { z } from "zod";
 
-const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address").min(1, "Email is required"),
-  password: z.string().min(6, "Password must be at least 6 characters").min(1, "Password is required"),
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters").min(1, "Name is required"),
+    email: z.string().email("Please enter a valid email address").min(1, "Email is required"),
+    password: z.string().min(6, "Password must be at least 6 characters").min(1, "Password is required"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
 
-const LoginScreen = () => {
-  const { user } = useUserStore();
-  const { colors, theme } = useTheme();
+const RegisterScreen = () => {
+  const { colors } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [nameFocused, setNameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
 
-  const { mutateAsync: loginMutate, isPending } = useLoginMutation();
+  const { mutateAsync: registerMutate, isPending: isRegistering } = useRegisterMutation();
+  const { mutateAsync: loginMutate, isPending: isLoggingIn } = useLoginMutation();
 
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
   });
 
-  const onSubmit = async (data: LoginFormData) => {
+  const isLoading = isRegistering || isLoggingIn;
+
+  const onSubmit = async (data: RegisterFormData) => {
     try {
-      await loginMutate({ email: data.email, password: data.password });
+      // First, register the user
+      await registerMutate({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+      });
+
+      // Then automatically log them in
+      await loginMutate({
+        email: data.email,
+        password: data.password,
+      });
+
+      // Navigate to the main app
       router.replace("/(app)");
     } catch (error) {
-      alert(`Login failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      Alert.alert("Registration Failed", error instanceof Error ? error.message : "Unknown error");
     }
   };
 
@@ -59,24 +82,48 @@ const LoginScreen = () => {
           <View style={[styles.card, { backgroundColor: colors.surface }]}>
             <Animated.View style={styles.header} entering={FadeIn.delay(400).duration(600)}>
               <Animated.View entering={BounceIn.delay(600).duration(800)}>
-                <MaterialIcons name="lock" size={24} color={colors.primary} />
+                <MaterialIcons name="person-add" size={24} color={colors.primary} />
               </Animated.View>
               <Animated.Text
                 style={[styles.title, { color: colors.text }]}
                 entering={SlideInDown.delay(700).duration(500)}
               >
-                Welcome Back
+                Create Account
               </Animated.Text>
               <Animated.Text
                 style={[styles.subtitle, { color: colors.textSecondary }]}
                 entering={SlideInDown.delay(800).duration(500)}
               >
-                Sign in to your Task Management account
+                Sign up to start managing your tasks
               </Animated.Text>
             </Animated.View>
 
             <View style={styles.form}>
               <Animated.View entering={SlideInLeft.delay(900).duration(400)}>
+                <Controller
+                  control={control}
+                  name="name"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="Full Name"
+                      placeholder="Enter your full name"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={() => {
+                        setNameFocused(false);
+                        onBlur();
+                      }}
+                      onFocus={() => setNameFocused(true)}
+                      focused={nameFocused}
+                      error={errors.name?.message}
+                      icon="person"
+                      autoCapitalize="words"
+                    />
+                  )}
+                />
+              </Animated.View>
+
+              <Animated.View entering={SlideInRight.delay(1000).duration(400)}>
                 <Controller
                   control={control}
                   name="email"
@@ -101,14 +148,14 @@ const LoginScreen = () => {
                 />
               </Animated.View>
 
-              <Animated.View entering={SlideInRight.delay(1000).duration(400)}>
+              <Animated.View entering={SlideInLeft.delay(1100).duration(400)}>
                 <Controller
                   control={control}
                   name="password"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <Input
                       label="Password"
-                      placeholder="Enter your password"
+                      placeholder="Create a password"
                       value={value}
                       onChangeText={onChange}
                       onBlur={() => {
@@ -127,23 +174,47 @@ const LoginScreen = () => {
                 />
               </Animated.View>
 
-              <Animated.View entering={SlideInDown.delay(1200).duration(500)}>
-                <Button
-                  title={isPending ? "Signing In..." : "Sign In"}
-                  onPress={handleSubmit(onSubmit)}
-                  disabled={isPending}
-                  loading={isPending}
-                  style={styles.signInButton}
+              <Animated.View entering={SlideInRight.delay(1200).duration(400)}>
+                <Controller
+                  control={control}
+                  name="confirmPassword"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="Confirm Password"
+                      placeholder="Confirm your password"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={() => {
+                        setConfirmPasswordFocused(false);
+                        onBlur();
+                      }}
+                      onFocus={() => setConfirmPasswordFocused(true)}
+                      focused={confirmPasswordFocused}
+                      error={errors.confirmPassword?.message}
+                      icon="lock"
+                      secureTextEntry={!showConfirmPassword}
+                      showPasswordToggle
+                      onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+                    />
+                  )}
                 />
               </Animated.View>
 
               <Animated.View entering={FadeIn.delay(1300).duration(400)}>
-                <View style={styles.registerLink}>
-                  <Text style={[styles.registerLinkText, { color: colors.textSecondary }]}>
-                    Don't have an account?{" "}
-                  </Text>
-                  <TouchableOpacity onPress={() => router.replace("/auth/register")}>
-                    <Text style={[styles.registerLinkButton, { color: colors.primary }]}>Sign Up</Text>
+                <Button
+                  title={isRegistering ? "Creating Account..." : isLoggingIn ? "Signing You In..." : "Create Account"}
+                  onPress={handleSubmit(onSubmit)}
+                  disabled={isLoading}
+                  loading={isLoading}
+                  style={styles.registerButton}
+                />
+              </Animated.View>
+
+              <Animated.View entering={FadeIn.delay(1400).duration(400)}>
+                <View style={styles.loginLink}>
+                  <Text style={[styles.loginLinkText, { color: colors.textSecondary }]}>Already have an account? </Text>
+                  <TouchableOpacity onPress={() => router.replace("/auth/login")}>
+                    <Text style={[styles.loginLinkButton, { color: colors.primary }]}>Sign In</Text>
                   </TouchableOpacity>
                 </View>
               </Animated.View>
@@ -158,18 +229,6 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  backButton: {
-    position: "absolute",
-    top: 60,
-    left: 20,
-    zIndex: 1000,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
   },
   keyboardAwareContainer: {
     flex: 1,
@@ -202,13 +261,6 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 24,
   },
-  iconGradient: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   title: {
     fontSize: 22,
     fontWeight: "700",
@@ -223,38 +275,22 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  forgotPassword: {
-    marginTop: 8,
-    marginBottom: 12,
-    alignSelf: "flex-end",
-  },
-  forgotPasswordText: {
-    fontSize: 12,
-  },
-  signInButton: {
+  registerButton: {
     marginTop: 8,
   },
-  registerLink: {
+  loginLink: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 16,
   },
-  registerLinkText: {
+  loginLinkText: {
     fontSize: 14,
   },
-  registerLinkButton: {
+  loginLinkButton: {
     fontSize: 14,
     fontWeight: "600",
   },
-  successIcon: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    marginTop: -24,
-    marginLeft: -24,
-    zIndex: 1000,
-  },
 });
 
-export default LoginScreen;
+export default RegisterScreen;
