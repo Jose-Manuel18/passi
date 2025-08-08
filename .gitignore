@@ -1,1 +1,110 @@
+# IDE and Editor files
 .cursor
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+.atom/
+.brackets.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+*.temp
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# Build outputs
+/backend/dist/
+/backend/build/
+/frontend/dist/
+/frontend/web-build/
+/frontend/.expo/
+build/
+out/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Test files
+.jest/
+
+# Prisma
+/backend/prisma/migrations/
+
+# Docker
+.dockerignore
+
+# TypeScript
+*.tsbuildinfo
+
+# React Native / Expo specific
+.expo/
+expo-env.d.ts
+.metro-health-check*
+
+# Native builds
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.kotlin/
+
+# Certificates
+*.pem
+
+# Cache directories
+.cache/
+.parcel-cache/
+.next/
+
+# Miscellaneous
+.temp/
+.tmp/
+*.swp
+*.swo
+*~
+ios/

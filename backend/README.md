@@ -96,3 +96,24 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## Database (Docker + Postgres + Prisma)
+
+1. Copy env and set `DATABASE_URL`:
+
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/passi?schema=public
+```
+
+2. Start DB:
+
+```
+docker compose up -d db
+```
+
+3. Generate client and run migrations:
+
+```
+yarn prisma:generate
+yarn prisma:migrate
+```
